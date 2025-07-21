@@ -1,0 +1,119 @@
+#version: '3.8'
+#
+#services:
+#  mysql:
+#    image: mysql:8.3
+#    container_name: mysql
+#    restart: always
+#    environment:
+#      MYSQL_ROOT_PASSWORD: root
+#    ports:
+#      - "3306:3306"
+#    volumes:
+#      - mysql_data:/var/lib/mysql
+#    networks:
+#      - banknet
+#
+#  configserver:
+#    build:
+#      context: ./configserver
+#    container_name: configserver
+#    ports:
+#      - "8888:8888"
+#    networks:
+#      - banknet
+#    depends_on:
+#      - mysql
+#
+#  eurekaserver:
+#    build:
+#      context: ./eurekaserver
+#    container_name: eurekaserver
+#    ports:
+#      - "8761:8761"
+#    networks:
+#      - banknet
+#    depends_on:
+#      - configserver
+#
+#  apigate-way:
+#    build:
+#      context: ./apigate-way
+#    container_name: apigate-way
+#    ports:
+#      - "8080:8080"
+#    networks:
+#      - banknet
+#    depends_on:
+#      - eurekaserver
+#
+#  auth:
+#    build:
+#      context: ./auth
+#    container_name: auth
+#    ports:
+#      - "8082:8082"
+#    networks:
+#      - banknet
+#    depends_on:
+#      - mysql
+#      - eurekaserver
+#      - configserver
+#
+#  customer:
+#    build:
+#      context: ./customer
+#    container_name: customer
+#    ports:
+#      - "8081:8081"
+#    networks:
+#      - banknet
+#    depends_on:
+#      - mysql
+#      - configserver
+#      - eurekaserver
+#
+#  account:
+#    build:
+#      context: ./account
+#    container_name: account
+#    ports:
+#      - "8083:8083"
+#    networks:
+#      - banknet
+#    depends_on:
+#      - mysql
+#      - configserver
+#      - eurekaserver
+#
+#  transactionservice:
+#    build:
+#      context: ./transactionservice
+#    container_name: transactionservice
+#    ports:
+#      - "8085:8085"
+#    networks:
+#      - banknet
+#    depends_on:
+#      - mysql
+#      - configserver
+#      - eurekaserver
+#
+#  notificationservice:
+#    build:
+#      context: ./notificationservice
+#    container_name: notificationservice
+#    ports:
+#      - "8084:8084"
+#    networks:
+#      - banknet
+#    depends_on:
+#      - configserver
+#      - eurekaserver
+#
+#volumes:
+#  mysql_data:
+#
+#networks:
+#  banknet:
+#    driver: bridge
