@@ -16,7 +16,7 @@ public class NotificationProducer {
     }
 
     public void send(NotificationRequest request) {
-        log.info("🔁 Sending notification to Kafka: {}", request.to());
+        log.info("Sending notification to Kafka: {}", request.to());
         kafkaTemplate.send("notification-topic", request);
     }
 }

@@ -8,5 +8,4 @@ public record NotificationResponse (
         String subject,
         String message,
         LocalDateTime sentAt
-){
-}
+){}
