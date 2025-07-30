@@ -1,11 +1,14 @@
 package com.bankofbugbusters.customer.entity;
 
 import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
+import lombok.NoArgsConstructor;
 
 
 @Entity
 @Builder
+
 public class Customer {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

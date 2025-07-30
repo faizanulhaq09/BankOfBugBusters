@@ -33,7 +33,7 @@ public class TransactionServiceImpl implements TransactionService {
     public TransactionResponse createTransaction(CreateTransactionRequest request) {
         log.info("Creating transaction: {}", request);
         Transaction saved = repository.save(mapper.toEntity(request));
-        // 🔁 Notify via Kafka
+        //  Notify via Kafka
         NotificationRequest notification = new NotificationRequest(
                 "customer@example.com", // Replace with real logic
                 "Transaction Successful",

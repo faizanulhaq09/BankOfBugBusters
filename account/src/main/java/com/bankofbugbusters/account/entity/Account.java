@@ -17,6 +17,7 @@ public class Account {
     private String accountType;
     private BigDecimal balance;
 
+
     public Account() {
     }
 

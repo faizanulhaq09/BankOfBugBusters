@@ -2,22 +2,77 @@ version: '3.8'
 
 services:
 
-  mysql:
+  customerdb:
     image: mysql:8.0
-    container_name: mysql
+    container_name: customerdb
     restart: always
     environment:
       MYSQL_ROOT_PASSWORD: root
-      MYSQL_DATABASE: root
+      MYSQL_DATABASE: customersdb
     ports:
-      - "3306:3306"
+      - "3313:3306"
     volumes:
-      - mysql_data:/var/lib/mysql
-    healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+      - customer_data:/var/lib/mysql
+
+  accountdb:
+    image: mysql:8.0
+    container_name: accountdb
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: accountsdb
+    ports:
+      - "3308:3306"
+    volumes:
+      - account_data:/var/lib/mysql
+
+  transactiondb:
+    image: mysql:8.0
+    container_name: transactiondb
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: transactiondb
+    ports:
+      - "3309:3306"
+    volumes:
+      - transaction_data:/var/lib/mysql
+
+  notificationdb:
+    image: mysql:8.0
+    container_name: notificationdb
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: notificationdb
+    ports:
+      - "3310:3306"
+    volumes:
+      - notification_data:/var/lib/mysql
+
+  authdb:
+    image: mysql:8.0
+    container_name: authdb
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: authdb
+    ports:
+      - "3311:3306"
+    volumes:
+      - auth_data:/var/lib/mysql
+
+  configdb:
+    image: mysql:8.0
+    container_name: configdb
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: configdb
+    ports:
+      - "3312:3306"
+    volumes:
+      - config_data:/var/lib/mysql
 
   zookeeper:
     image: confluentinc/cp-zookeeper:7.4.0
@@ -26,18 +81,12 @@ services:
       ZOOKEEPER_CLIENT_PORT: 2181
     ports:
       - "2181:2181"
-    healthcheck:
-      test: ["CMD", "echo", "ruok", "|", "nc", "localhost", "2181"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
 
   kafka:
     image: confluentinc/cp-kafka:7.4.0
     container_name: kafka
     depends_on:
-      zookeeper:
-        condition: service_healthy
+      - zookeeper
     ports:
       - "9092:9092"
     environment:
@@ -45,144 +94,131 @@ services:
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
       KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
-    healthcheck:
-      test: ["CMD", "kafka-topics", "--bootstrap-server", "localhost:9092", "--list"]
-      interval: 15s
-      timeout: 10s
-      retries: 5
 
-  config-server:
+  configserver:
     build:
       context: ./configserver
     container_name: config-server
     ports:
       - "8888:8888"
     depends_on:
-      mysql:
-        condition: service_healthy
+      - configdb
     environment:
-      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/configdb
+      SPRING_DATASOURCE_URL: jdbc:mysql://configdb:3306/configdb
       SPRING_DATASOURCE_USERNAME: root
       SPRING_DATASOURCE_PASSWORD: root
 
-  discovery-server:
+  eurekaserver:
     build:
       context: ./eurekaserver
     container_name: discovery-server
     ports:
       - "8761:8761"
     depends_on:
-      config-server:
-        condition: service_started
+      - configserver
     environment:
       SPRING_CONFIG_IMPORT: optional:configserver:http://config-server:8888
 
-  api-gateway:
+  apigate-way:
     build:
       context: ./apigate-way
     container_name: api-gateway
     ports:
       - "8080:8080"
     depends_on:
-      discovery-server:
-        condition: service_healthy
+      - eurekaserver
     environment:
       SPRING_CONFIG_IMPORT: optional:configserver:http://config-server:8888
-      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery-server:8761/eureka
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eurekaserver:8761/eureka
 
-  auth-service:
+  auth:
     build:
       context: ./auth
     container_name: auth-service
     ports:
       - "8082:8082"
     depends_on:
-      discovery-server:
-        condition: service_healthy
+      - authdb
+      - eurekaserver
     environment:
-      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/authdb
+      SPRING_DATASOURCE_URL: jdbc:mysql://authdb:3306/authdb
       SPRING_DATASOURCE_USERNAME: root
       SPRING_DATASOURCE_PASSWORD: root
       SPRING_CONFIG_IMPORT: optional:configserver:http://config-server:8888
-      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery-server:8761/eureka
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eurekaserver:8761/eureka
 
-  customer-service:
+  customer:
     build:
       context: ./customer
     container_name: customer-service
     ports:
       - "8081:8081"
     depends_on:
-      mysql:
-        condition: service_healthy
-      discovery-server:
-        condition: service_healthy
+      - customerdb
+      - eurekaserver
     environment:
-      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/customersdb
+      SPRING_DATASOURCE_URL: jdbc:mysql://customerdb:3306/customersdb
       SPRING_DATASOURCE_USERNAME: root
       SPRING_DATASOURCE_PASSWORD: root
       SPRING_CONFIG_IMPORT: optional:configserver:http://config-server:8888
-      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery-server:8761/eureka
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eurekaserver:8761/eureka
 
-  account-service:
+  account:
     build:
       context: ./account
     container_name: account-service
     ports:
       - "8083:8083"
     depends_on:
-      mysql:
-        condition: service_healthy
-      discovery-server:
-        condition: service_healthy
+      - accountdb
+      - eurekaserver
     environment:
-      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/accountsdb
+      SPRING_DATASOURCE_URL: jdbc:mysql://accountdb:3306/accountsdb
       SPRING_DATASOURCE_USERNAME: root
       SPRING_DATASOURCE_PASSWORD: root
       SPRING_CONFIG_IMPORT: optional:configserver:http://config-server:8888
-      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery-server:8761/eureka
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eurekaserver:8761/eureka
 
-  transaction-service:
+  transactionservice:
     build:
       context: ./transactionservice
     container_name: transaction-service
     ports:
       - "8085:8085"
     depends_on:
-      mysql:
-        condition: service_healthy
-      kafka:
-        condition: service_healthy
-      discovery-server:
-        condition: service_healthy
+      - transactiondb
+      - kafka
+      - eurekaserver
     environment:
-      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/transactiondb
+      SPRING_DATASOURCE_URL: jdbc:mysql://transactiondb:3306/transactiondb
       SPRING_DATASOURCE_USERNAME: root
       SPRING_DATASOURCE_PASSWORD: root
       SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
       SPRING_CONFIG_IMPORT: optional:configserver:http://config-server:8888
-      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery-server:8761/eureka
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eurekaserver:8761/eureka
 
-  notification-service:
+  notificationservice:
     build:
       context: ./notificationservice
     container_name: notification-service
     ports:
       - "8084:8084"
     depends_on:
-      mysql:
-        condition: service_healthy
-      kafka:
-        condition: service_healthy
-      discovery-server:
-        condition: service_healthy
+      - notificationdb
+      - kafka
+      - eurekaserver
     environment:
-      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/notificationdb
+      SPRING_DATASOURCE_URL: jdbc:mysql://notificationdb:3306/notificationdb
       SPRING_DATASOURCE_USERNAME: root
       SPRING_DATASOURCE_PASSWORD: root
       SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
       SPRING_CONFIG_IMPORT: optional:configserver:http://config-server:8888
-      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery-server:8761/eureka
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eurekaserver:8761/eureka
 
 volumes:
-  mysql_data:
+  customer_data:
+  account_data:
+  transaction_data:
+  notification_data:
+  auth_data:
+  config_data:
